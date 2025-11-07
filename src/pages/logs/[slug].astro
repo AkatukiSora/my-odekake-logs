@@ -1,0 +1,205 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const logs = await getCollection('logs');
+  return logs.map(log => ({
+    params: { slug: log.slug },
+    props: { log },
+  }));
+}
+
+const { log } = Astro.props;
+const { Content } = await log.render();
+
+// ベースパスを取得
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout>
+	<main>
+		<article class="log-detail">
+			<header>
+				<a href={base} class="back-link">← 一覧に戻る</a>
+				<h1>{log.data.title}</h1>
+				<div class="meta">
+					<time datetime={log.data.date.toISOString()}>
+						{log.data.date.toLocaleDateString('ja-JP', { 
+							year: 'numeric', 
+							month: 'long', 
+							day: 'numeric' 
+						})}
+					</time>
+					<span class="location">📍 {log.data.location}</span>
+					{log.data.purpose && (
+						<span class="purpose">🎯 {log.data.purpose}</span>
+					)}
+				</div>
+				<div class="tags">
+					{log.data.tags.map(tag => (
+						<a href={`${base}?tag=${encodeURIComponent(tag)}`} class="tag">
+							{tag}
+						</a>
+					))}
+				</div>
+			</header>
+
+			<div class="content" data-pagefind-body>
+				<Content />
+			</div>
+		</article>
+	</main>
+</Layout>
+
+<style>
+	main {
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	.back-link {
+		display: inline-block;
+		margin-bottom: 1rem;
+		color: #4CAF50;
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	.back-link:hover {
+		text-decoration: underline;
+	}
+
+	.log-detail header {
+		margin-bottom: 2rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 2px solid #e0e0e0;
+	}
+
+	.log-detail h1 {
+		font-size: 2.5rem;
+		margin-bottom: 1rem;
+		color: #2c3e50;
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-bottom: 1rem;
+		font-size: 1rem;
+		color: #666;
+	}
+
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.tag {
+		padding: 0.4rem 0.8rem;
+		background: #e3f2fd;
+		border-radius: 4px;
+		text-decoration: none;
+		color: #1976d2;
+		font-size: 0.9rem;
+		transition: background 0.2s;
+	}
+
+	.tag:hover {
+		background: #bbdefb;
+	}
+
+	.content {
+		line-height: 1.8;
+		color: #333;
+	}
+
+	.content :global(h1) {
+		font-size: 2rem;
+		margin: 2rem 0 1rem;
+		color: #2c3e50;
+	}
+
+	.content :global(h2) {
+		font-size: 1.7rem;
+		margin: 1.8rem 0 1rem;
+		color: #34495e;
+		border-bottom: 2px solid #e0e0e0;
+		padding-bottom: 0.3rem;
+	}
+
+	.content :global(h3) {
+		font-size: 1.4rem;
+		margin: 1.5rem 0 0.8rem;
+		color: #555;
+	}
+
+	.content :global(p) {
+		margin: 1rem 0;
+	}
+
+	.content :global(ul), .content :global(ol) {
+		margin: 1rem 0;
+		padding-left: 2rem;
+	}
+
+	.content :global(li) {
+		margin: 0.5rem 0;
+	}
+
+	.content :global(code) {
+		background: #f5f5f5;
+		padding: 0.2rem 0.4rem;
+		border-radius: 3px;
+		font-family: 'Courier New', monospace;
+	}
+
+	.content :global(pre) {
+		background: #f5f5f5;
+		padding: 1rem;
+		border-radius: 5px;
+		overflow-x: auto;
+		margin: 1rem 0;
+	}
+
+	.content :global(blockquote) {
+		border-left: 4px solid #4CAF50;
+		padding-left: 1rem;
+		margin: 1rem 0;
+		color: #555;
+		font-style: italic;
+	}
+
+	.content :global(img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 5px;
+		margin: 1rem 0;
+	}
+
+	@media (max-width: 600px) {
+		main {
+			padding: 1rem;
+		}
+
+		.log-detail h1 {
+			font-size: 2rem;
+		}
+
+		.content :global(h1) {
+			font-size: 1.7rem;
+		}
+
+		.content :global(h2) {
+			font-size: 1.5rem;
+		}
+
+		.content :global(h3) {
+			font-size: 1.3rem;
+		}
+	}
+</style>

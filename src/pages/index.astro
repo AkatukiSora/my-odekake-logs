@@ -1,0 +1,216 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allLogs = await getCollection('logs');
+const sortedLogs = allLogs.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// 全てのタグを抽出
+const allTags = [...new Set(allLogs.flatMap(log => log.data.tags))].sort();
+
+// URLクエリパラメータからタグを取得
+const url = new URL(Astro.request.url);
+const selectedTag = url.searchParams.get('tag');
+
+// タグでフィルタリング
+const filteredLogs = selectedTag 
+  ? sortedLogs.filter(log => log.data.tags.includes(selectedTag))
+  : sortedLogs;
+
+// ベースパスを取得
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout>
+	<main>
+		<h1>旅の記録</h1>
+		
+		<div class="search-container">
+			<div id="search"></div>
+		</div>
+
+		<section class="tags-section">
+			<h2>タグで絞り込み</h2>
+			<div class="tags">
+				<a href={base} class:list={["tag", { active: !selectedTag }]}>すべて</a>
+				{allTags.map(tag => (
+					<a 
+						href={`${base}?tag=${encodeURIComponent(tag)}`}
+						class:list={["tag", { active: selectedTag === tag }]}
+					>
+						{tag}
+					</a>
+				))}
+			</div>
+		</section>
+
+		<section class="logs-list">
+			<h2>記事一覧 ({filteredLogs.length}件)</h2>
+			{filteredLogs.map(log => (
+				<article class="log-card">
+					<a href={`${base}logs/${log.slug}/`}>
+						<h3>{log.data.title}</h3>
+						<div class="meta">
+							<time datetime={log.data.date.toISOString()}>
+								{log.data.date.toLocaleDateString('ja-JP')}
+							</time>
+							<span class="location">📍 {log.data.location}</span>
+							{log.data.purpose && (
+								<span class="purpose">🎯 {log.data.purpose}</span>
+							)}
+						</div>
+						{log.data.description && (
+							<p class="description">{log.data.description}</p>
+						)}
+						<div class="tags-mini">
+							{log.data.tags.map(tag => (
+								<span class="tag-mini">{tag}</span>
+							))}
+						</div>
+					</a>
+				</article>
+			))}
+		</section>
+	</main>
+</Layout>
+
+<style>
+	main {
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	h1 {
+		font-size: 2.5rem;
+		margin-bottom: 2rem;
+		color: #333;
+	}
+
+	h2 {
+		font-size: 1.5rem;
+		margin: 2rem 0 1rem;
+		color: #555;
+	}
+
+	.search-container {
+		margin-bottom: 2rem;
+	}
+
+	.tags-section {
+		margin-bottom: 2rem;
+		padding: 1.5rem;
+		background: #f5f5f5;
+		border-radius: 8px;
+	}
+
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.tag {
+		padding: 0.5rem 1rem;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		text-decoration: none;
+		color: #333;
+		transition: all 0.2s;
+	}
+
+	.tag:hover {
+		background: #e0e0e0;
+		border-color: #999;
+	}
+
+	.tag.active {
+		background: #4CAF50;
+		color: white;
+		border-color: #4CAF50;
+	}
+
+	.logs-list {
+		margin-top: 2rem;
+	}
+
+	.log-card {
+		margin-bottom: 1.5rem;
+		padding: 1.5rem;
+		background: white;
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		transition: all 0.2s;
+	}
+
+	.log-card:hover {
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+		transform: translateY(-2px);
+	}
+
+	.log-card a {
+		text-decoration: none;
+		color: inherit;
+		display: block;
+	}
+
+	.log-card h3 {
+		margin: 0 0 0.5rem;
+		color: #2c3e50;
+		font-size: 1.5rem;
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+		font-size: 0.9rem;
+		color: #666;
+	}
+
+	.description {
+		margin: 0.5rem 0;
+		color: #555;
+		line-height: 1.6;
+	}
+
+	.tags-mini {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin-top: 0.5rem;
+	}
+
+	.tag-mini {
+		padding: 0.2rem 0.5rem;
+		background: #e3f2fd;
+		border-radius: 3px;
+		font-size: 0.8rem;
+		color: #1976d2;
+	}
+</style>
+
+<script>
+	if (typeof window !== 'undefined') {
+		import('@pagefind/default-ui').then(({ PagefindUI }) => {
+			new PagefindUI({
+				element: '#search',
+				showSubResults: true,
+				translations: {
+					placeholder: '検索...',
+					clear_search: 'クリア',
+					load_more: 'さらに読み込む',
+					search_label: '検索',
+					filters_label: 'フィルター',
+					zero_results: '結果が見つかりませんでした: [SEARCH_TERM]',
+					many_results: '[COUNT]件の結果が見つかりました: [SEARCH_TERM]',
+					one_result: '1件の結果が見つかりました: [SEARCH_TERM]',
+					alt_search: '[SEARCH_TERM]の検索結果',
+					search_suggestion: '検索ワードを入力してください',
+				}
+			})
+		})
+	}
+</script>
